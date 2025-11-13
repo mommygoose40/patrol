@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>志工巡視紀錄</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h2 id="result">處理中...</h2>
+
+  <script>
+    const liffId = "2007934728-vXxPkg3X"; // 你的 LIFF ID
+    const gasUrl = "https://script.google.com/macros/s/AKfycbxRswgP1Pxq_kKi8IY9ZNA4Dbp2SdLKbh5p1sBuB_ODXan52XSHuggegtBPZG7cfCju/exec"; // 你的 GAS 部署網址（exec）
+
+    async function main() {
+      await liff.init({ liffId });
+
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      const profile = await liff.getProfile();
+      const userId = profile.userId;
+      const displayName = profile.displayName;
+
+      // 呼叫 GAS
+      fetch(`${gasUrl}?uid=${encodeURIComponent(userId)}&name=${encodeURIComponent(displayName)}`)
+        .then(res => res.text())
+        .then(txt => {
+          document.getElementById('result').innerText = txt;
+        })
+        .catch(err => {
+          document.getElementById('result').innerText = "發生錯誤：" + err;
+        });
+    }
+
+    main();
+  </script>
+</body>
+</html>
