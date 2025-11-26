@@ -144,12 +144,14 @@
   </div>
 
 <script>
-  const gasUrl = "https://script.google.com/macros/s/AKfycbwFeKTS39HUOqNhqpgLaG7vjeJLHxv9a-KBEmWKl6zZybdCBWlSJqJWZ_qXwLxQ3sue/exec";
+  const gasUrl = "https://script.google.com/macros/s/AKfycbx9gMYwlCN393FcFoiOSCpUATRBKeErZAN3ZAFPszyKeJqgxJkr8tsa7uqVMpyGGa4V/exec";
 
-  /* ★ 改成讀取 vid 身分 */
-const url = new URL(window.location.href);
-const vid = url.searchParams.get("vid");
-let isCancelling = false;
+  /* ★ 在最前面新增：統一讀 login 帶來的身分 */
+  const url = new URL(window.location.href);
+  const name = url.searchParams.get("name") || "";
+  const role = url.searchParams.get("role") || "";
+  let globalNickname = name;
+  let isCancelling = false;   // 避免成功畫面跳出
 
   function nowTimeStr() {
   const now = new Date();
@@ -175,67 +177,73 @@ let isCancelling = false;
 }
 
   async function main() {
-  fetch(gasUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      action: "start",
-      vid: vid          // ★★★ 改這裡（不再送姓名）
-    })
+    fetch(gasUrl, {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    name: globalNickname
   })
+})
   .then(res => res.text())
   .then(msg => {
 
-    if (isCancelling) return;
+  if (isCancelling) return;
 
-    localStorage.setItem("patrolStatus", "started");
+  // ★ 記錄：開始巡視成功
+  localStorage.setItem("patrolStatus", "started");
 
-    document.getElementById("loadingMask").style.display = "none";
-    document.getElementById("msgText").innerText = msg;
-    document.getElementById("timeText").innerText = nowTimeStr();
-    document.getElementById("mainCard").style.display = "block";
-  });
-}
+  document.getElementById("loadingMask").style.display = "none";
+  document.getElementById("msgText").innerText = msg;
+  document.getElementById("timeText").innerText = nowTimeStr();
+  document.getElementById("mainCard").style.display = "block";
+});
+  }
 
-/* ===== 取消巡視 ===== */
-document.getElementById("cancelAfterSubmit").onclick = function () {
+  /* loading 時按取消 — 直接改文字 + 呼叫 API */
+  // (上次版本這邊有按鈕，這版已移除)
 
-  isCancelling = true;
+  /* 成功畫面 → 取消巡視 */
+  document.getElementById("cancelAfterSubmit").onclick = function () {
 
-  document.getElementById("mainCard").style.display = "none";
-  document.getElementById("loadingMask").style.display = "flex";
-  document.getElementById("loadingText").innerText = "取消中...";
+    isCancelling = true;
 
-  fetch(gasUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      action: "cancel",
-      vid: vid         // ★★★ 改這裡
-    })
+    // 顯示取消中畫面（無按鈕）
+    document.getElementById("mainCard").style.display = "none";
+    document.getElementById("loadingMask").style.display = "flex";
+    document.getElementById("loadingText").innerText = "取消中...";
+
+    fetch(gasUrl, {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    action: "cancel",
+    name: globalNickname
   })
+})
   .then(res => res.text())
   .then(msg => {
 
-    localStorage.setItem("patrolStatus", "ended");
+  // ★ 記錄：結束巡視成功
+  localStorage.setItem("patrolStatus", "ended");
 
-    document.querySelector("#loadingMask .spinner").style.display = "none";
-    document.getElementById("loadingText").innerText = "✅ 已取消";
+  document.querySelector("#loadingMask .spinner").style.display = "none";
+  document.getElementById("loadingText").innerText = "✅ 已取消";
 
-    setTimeout(() => {
-      window.location.href =
-        `https://home-blush-six.vercel.app/?vid=${encodeURIComponent(vid)}`;
-    }, 1000);
-  });
+  setTimeout(() => {
+    if (liff.isInClient()) liff.closeWindow();
+    else window.location.href =
+  `https://home-blush-six.vercel.app/?name=${encodeURIComponent(name)}&role=${encodeURIComponent(role)}`;
+  }, 1000);
+});
+  };
+
+  document.getElementById("okBtn").onclick = function () {
+    // ★ 按下確定 → 回到主畫面
+    location.href =
+  `https://home-blush-six.vercel.app/?name=${encodeURIComponent(name)}&role=${encodeURIComponent(role)}`;
 };
 
-/* ===== 按下確定 → 回首頁 ===== */
-document.getElementById("okBtn").onclick = function () {
-  location.href =
-    `https://home-blush-six.vercel.app/?vid=${encodeURIComponent(vid)}`;
-};
-
-main();
+  main();
 </script>
 
 </body>
